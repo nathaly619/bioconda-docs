@@ -39,6 +39,10 @@ jobs:
         # export BIOCONDA_FILTER_RECIPES=10
         echo "BIOCONDA_FILTER_RECIPES=10" >> $GITHUB_ENV
 
+    - name: override built recipe restriction with [build all recipes]
+      if: "contains(github.event.head_commit.message, '[build all recipes]'"
+        echo "BIOCONDA_FILTER_RECIPES=" >> $GITHUB_ENV
+
     - name: build docs
       run: |
         eval "$(conda shell.bash hook)"
