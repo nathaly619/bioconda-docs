@@ -106,7 +106,7 @@ html_theme_options = {
     "show_related": True,
     "font_family": "Raleway, sans-serif",
     "head_font_family": "'Lato', sans-serif",
-    "fixed_sidebar": True,
+    "fixed_sidebar": False,
 }
 
 # The name for this set of Sphinx documents.  If None, it defaults to
@@ -132,10 +132,6 @@ html_static_path = ["static"]
 
 html_js_files = ["vega.min.js", "vega-lite.min.js", "vega-embed.min.js"]
 
-# Add any extra paths that contain custom files (such as robots.txt or
-# .htaccess) here, relative to this directory. These files are copied
-# directly to the root of the documentation.
-html_extra_path = ['README.md']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
