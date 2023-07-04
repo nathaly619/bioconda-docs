@@ -64,21 +64,38 @@ example is updating pinnings to support Python 3.10.
    There may be a few remaining conflicts to fix; in all cases you should
    prefer what's on the master branch.
 
-5. Start a preliminary bulk run to build the cache. In :file:`.github/workflows/Bulk.yml`, set
+5. Start a preliminary bulk run to build the cache.
+   In :file:`.github/workflows/Bulk.yml`, set
    the number of workers to 1 (so,
    ``jobs:build-linux:strategy:matrix:runner:[0]``) and also set
    ``--n-workers=1`` in the ``bioconda-utils`` call. This will allow building
    the cache which will be used in subsequent (parallel) runs. Make sure you do
    this for both the Linux and MacOS sections.
+   **Important:** Then, commit the changes with ``bioconda-utils bulk-commit <message> && git push``.
+   The bulk branch refuses to run CI on normal commits to avoid race conditions.
+   The `bulk-commit` subcommands adds a special tag ``[ci run]`` to the commit message
+   that enables CI on the bulk branch for that commit. Let this initial run finish.
 
-6. Let the initial run finish. Fix anything obvious, and now that the cache is
-   built you can incrementally increase the workers and the ``--n-workers``
-   argument to allow parallel jobs.
+7. Increase workers and the ``--n-workers`` argument to the previous values.
+
+6. Fix anything obvious and again, commit the changes with ``bioconda-utils bulk-commit <message> && git push``.
+   Once all CI jobs have finished, you will find build failures stored next to each recipe.
+   See :ref:`handling-build-failues` for how to deal with them. For each failed recipe,
+   either try a fix or mark it as skiplisted in the build failure YAML file, so that the CI
+   does not redundantly try to build it multiple times.
 
 7. Once things largely settle down, run ``bioconda-utils update-pinnings`` in
    the bulk branch. This will go through all the pinnings, figure out what
    recipes they're used with, and bump the recipes' build numbers
-   appropriately. Then push to bulk to rebuild all of those.
+   appropriately. Then trigger a rerun with ``bioconda-utils bulk-commit <message> && git push``
+   and go on like described in step 6.
+
+.. _handling-build-failues:
+
+Handling build failures
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Build failures are stored in a file ``build_failure.<arch>.yaml`` next to each failing recipe.
 
 See :ref:`merge-bulk` for next steps.
 
