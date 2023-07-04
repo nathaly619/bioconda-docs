@@ -93,20 +93,23 @@ example is updating pinnings to support Python 3.10.
 5. Run ``bioconda-utils update-pinnings`` in
    the bulk branch. This will go through all the pinnings, figure out what
    recipes they're used with, and bump the recipes' build numbers
-   appropriately. Then, **bulk-commit** and push the changes.
+   appropriately.
 
-6. Once the CI run has finished, inspect all build failures (see :ref:`handling-build-failues`).
+6. Then, **bulk-commit** and push the changes.
+
+7. Once the CI run has finished, inspect all build failures (see :ref:`handling-build-failues`).
    For each failure, decide whether the recipe shall be skiplisted or whether you would like to fix it.
    In general it is advisable to fix all libraries on which many recipes depend and anything else
    that is obvious and easy. For the rest, mark the recipes as skiplisted in the build failure file.
    It will be ignored by subsequence CI runs and put into a table in the bioconda-recipes wiki.
    This strategy is good because the bulk branch update should be performed as fast as possible to avoid
    redundant work between master and bulk. Also, skiplisting democratizes the update effort.
-   If no untreated failure remains, **bulk-commit** (see above) and push the changes and visit
-   this step again. If the run has finished without any build failure and did not time out before checking all
+
+8. If no untreated failure remains, **bulk-commit** (see above) and push the changes and visit
+   step 6-7 again. If the run has finished without any build failure and did not time out before checking all
    recipes, you can go on with step 7.
 
-7. Once all the packages have either been successfully built or skiplisted, merge in the master branch 
+9. Once all the packages have either been successfully built or skiplisted, merge in the master branch 
    (after doing a git pull on it).
    Usually, conflicts can occur here due to build-numbers having been increased in the master branch while you
    did your changes in bulk. For such cases (which should be not so many) you can just increase the build number to
@@ -115,7 +118,7 @@ example is updating pinnings to support Python 3.10.
    Ensure that `bioconda-common/common.sh <https://github.com/bioconda/bioconda-common/blob/master/common.sh>`_ points to the same version of
    bioconda-utils that the ``bulk`` branch has been using. Then, merge bulk into master and push the changes.
 
-8. Shortly afterwards, you will find all remaining build failures in the 
+10. Shortly afterwards, you will find all remaining build failures in the 
    `bioconda-recipes wiki <https://github.com/bioconda/bioconda-recipes/wiki/build-failures>`_.
    You can let your colleagues and the community know about the updated build failure table and ask for help.
    In addition, any automatic or manual updates to recipes on this list that succeed will automatically
@@ -158,22 +161,7 @@ requires updating the packages on Bioconda. This is a perfect use-case for the
 bulk branch. The process is generally the same as above but without the
 pinnings updates and with some Bioconductor-specific helper scripts.
 
-1. *(this is step 4 from the above section on updating pinnings)* In
-   bioconda-recipes, merge master into bulk to start with a clean slate. Since
-   bulk is infrequently updated, there may be substantial conflicts caused by
-   running the default ``git checkout bulk && git merge master``. This tends to
-   happen most with build numbers. But since we want to prefer using whatever
-   is in the master branch, we can merge master into bulk, while preferring
-   master version in any conflicts, with:
-
-   .. code-block:: bash
-
-     git checkout bulk
-     git merge master -s recursive -X theirs
-
-   There may be a few remaining conflicts to fix; in all cases you should
-   prefer what's on the master branch.
-
+1. Execute step 4 from above.
 
 2. Identify the latest BioConductor version, and update all BioConductor
    recipes with:
@@ -182,28 +170,20 @@ pinnings updates and with some Bioconductor-specific helper scripts.
 
         bioconda-utils bioconductor-skeleton update-all-packages --bioc-version $BIOC_VERSION
 
-3. *(this is step 5 from the above section on updating pinnings)* Start
-   a preliminary bulk run to build the cache. In
-   :file:`.github/workflows/Bulk.yml`, set the number of workers to 1 (so,
-   ``jobs:build-linux:strategy:matrix:runner:[0]``) and also set
-   ``--n-workers=1`` in the ``bioconda-utils`` call. This will allow building
-   the cache which will be used in subsequent (parallel) runs. Make sure you do
-   this for both the Linux and MacOS sections.
+3. Execute step 6 from above.
 
-4. Use the
+4. Execute step 7 from above.
+   Alternatively, use the
    [rootNodes.py](https://github.com/bioconda/bioconda-recipes/blob/master/scripts/bioconductor/rootNodes.py)
    from the bioconda-recipes repo to help figure out what the primary root
    nodes are for the currently-remaining packages to be built. This looks at
    recently-built packages, removes them from the DAG of recipes to be built,
    and then reports to stdout the remaining root nodes. This information can be
    used to strategically edit the ``build-fail-blacklist`` file to prioritize
-   the building of those root nodes.
-
-5. Once builds seem to be stabilizing, remove the temporary edits to the
+   the building of those root nodes. Once builds seem to be stabilizing, remove the temporary edits to the
    ``build-fail-blacklist``.
 
-6. Follow the :ref:`merge-bulk` instructions for merging bulk back into the
-   master branch.
+5. Execute step 8-10 from above.
 
 
 Notes on working with bulk branch
