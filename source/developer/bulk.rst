@@ -20,6 +20,32 @@ miniconda) from the ``bulk`` branch of `bioconda-common`.
 Anaconda.** As such, only the bioconda core team has the ability to push to
 this branch.
 
+Interacting with the bulk branch
+--------------------------------
+
+When changes are made on the bulk branch (committed and pushed), the CI system
+decides whether it will run its jobs or not.
+
+* If any of the pushed commit messages contains the substring ``[ci run]`` the CI jobs are executed.
+* If not, no CI jobs are executed.
+
+The reason for this behavior is that we want to avoid race conditions caused by multiple CI jobs
+spawned from different commits to be exectuted at the same time.
+
+In order to simplify interactions with the bulk CI, bioconda-utils offers therefore
+some dedicated subcommands:
+
+* **bulk-commit**: ``bioconda-utils bulk-commit <message>`` commits the changes on your 
+  local clone of https://github.com/bioconda/bioconda-recipes to the bulk branch while marking the commit
+  as being eligible for a CI run (by automatically prefixing the message with ``[ci run]``).
+  The **bulk-commit** subcommand does not push the commit. This enables you to do multiple fine-grained commits
+  and pus them in one pass via a subsequence ``git push`` that triggers a single CI run.
+* **bulk-trigger-ci**: ``bioconda-utils bulk-trigger-ci`` creates an empty commit that is 
+  immediately pushed automatically to the bulk branch, thereby triggering a CI run. This can be used
+  to restart the CI run in case all of the previous runs are finished without build failures but there 
+  are still packages that need to be build (and haven't been before because the job runtime limits were
+  reached and the CI has terminated them (usually this happens after somewhat more than 5 hours)).
+
 Updating pinnings
 -----------------
 
@@ -64,31 +90,36 @@ example is updating pinnings to support Python 3.10.
    There may be a few remaining conflicts to fix; in all cases you should
    prefer what's on the master branch.
 
-5. Start a preliminary bulk run to build the cache.
-   In :file:`.github/workflows/Bulk.yml`, set
-   the number of workers to 1 (so,
-   ``jobs:build-linux:strategy:matrix:runner:[0]``) and also set
-   ``--n-workers=1`` in the ``bioconda-utils`` call. This will allow building
-   the cache which will be used in subsequent (parallel) runs. Make sure you do
-   this for both the Linux and MacOS sections.
-   **Important:** Then, commit the changes with ``bioconda-utils bulk-commit <message> && git push``.
-   The bulk branch refuses to run CI on normal commits to avoid race conditions.
-   The `bulk-commit` subcommands adds a special tag ``[ci run]`` to the commit message
-   that enables CI on the bulk branch for that commit. Let this initial run finish.
-
-7. Increase workers and the ``--n-workers`` argument to the previous values.
-
-6. Fix anything obvious and again, commit the changes with ``bioconda-utils bulk-commit <message> && git push``.
-   Once all CI jobs have finished, you will find build failures stored next to each recipe.
-   See :ref:`handling-build-failues` for how to deal with them. For each failed recipe,
-   either try a fix or mark it as skiplisted in the build failure YAML file, so that the CI
-   does not redundantly try to build it multiple times.
-
-7. Once things largely settle down, run ``bioconda-utils update-pinnings`` in
+5. Run ``bioconda-utils update-pinnings`` in
    the bulk branch. This will go through all the pinnings, figure out what
    recipes they're used with, and bump the recipes' build numbers
-   appropriately. Then trigger a rerun with ``bioconda-utils bulk-commit <message> && git push``
-   and go on like described in step 6.
+   appropriately. Then, **bulk-commit** and push the changes.
+
+6. Once the CI run has finished, inspect all build failures (see :ref:`handling-build-failues`).
+   For each failure, decide whether the recipe shall be skiplisted or whether you would like to fix it.
+   In general it is advisable to fix all libraries on which many recipes depend and anything else
+   that is obvious and easy. For the rest, mark the recipes as skiplisted in the build failure file.
+   It will be ignored by subsequence CI runs and put into a table in the bioconda-recipes wiki.
+   This strategy is good because the bulk branch update should be performed as fast as possible to avoid
+   redundant work between master and bulk. Also, skiplisting democratizes the update effort.
+   If no untreated failure remains, **bulk-commit** (see above) and push the changes and visit
+   this step again. If the run has finished without any build failure and did not time out before checking all
+   recipes, you can go on with step 7.
+
+7. Once all the packages have either been successfully built or skiplisted, merge in the master branch 
+   (after doing a git pull on it).
+   Usually, conflicts can occur here due to build-numbers having been increased in the master branch while you
+   did your changes in bulk. For such cases (which should be not so many) you can just increase the build number to
+   ``max(build_number_master, build_number_bulk)`` and **bulk-commit** all of those in a row.
+   Repeat this until master is merged without any conflicts. 
+   Ensure that `bioconda-common/common.sh <https://github.com/bioconda/bioconda-common/blob/master/common.sh>`_ points to the same version of
+   bioconda-utils that the ``bulk`` branch has been using. Then, merge bulk into master and push the changes.
+
+8. Shortly afterwards, you will find all remaining build failures in the 
+   `bioconda-recipes wiki <https://github.com/bioconda/bioconda-recipes/wiki/build-failures>`_.
+   You can let your colleagues and the community know about the updated build failure table and ask for help.
+   In addition, any automatic or manual updates to recipes on this list that succeed will automatically
+   remove them from this list over time.
 
 .. _handling-build-failues:
 
@@ -96,29 +127,26 @@ Handling build failures
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Build failures are stored in a file ``build_failure.<arch>.yaml`` next to each failing recipe.
+You can list all build failures stored in the current branch of bioconda-recipes via the command
+``bioconda-utils list-build-failures recipes config.yaml``. The presented table will be sorted by 
+the number of dependencies and package downloads, which should help for prioritizing the fixing work.
 
-See :ref:`merge-bulk` for next steps.
+This file can look e.g. like this:
 
-.. _merge-bulk:
+.. code-block:: yaml
 
-Merging back to master
-----------------------
+    recipe_sha: 37fa4d78a2ee8b18065a0bd0f594ad1e9587bb4ac7edf1b4629a9f10fa45d0a5  # The shas256 hash of the recipe at which it failed to build.
+    skiplist: true # Set to true to skiplist this recipe so that it will be ignored as long as its latest commit is the one given above.
+    log: |2-
+      <the logging output of the failed build>
 
-1. The goal on the bulk branch is to get all workers successfully passing, such
-   that there is nothing to do in the PR where bulk is merged into master. This
-   may require adding recipes to the ``build-fail-blacklist`` to skip building
-   them.
+Based on the log, you can decide whether and how the recipe can be fixed or whether it shall be skiplisted for
+fixing it later in the future.
+Notably, any update to the recipe automatically de-skiplists it, because the skiplist
+entry is only valid together with the hash listed in the first line.
 
-2. Merge the master branch into the bulk branch, dealing with any conflicts as
-   needed.
-
-3. Merge the bulk branch into the master branch.
-
-4. Ensure that ``bioconda-common/common.sh`` points to the same version of
-   bioconda-utils that the ``bulk`` branch has been using.
-
-5. Compile a list of packages that have been skipped or blacklisted during the
-   bulk migration, and open a new issue to ask for help from the community.
+Skiplisted recipes from the master branch are automatically displayed in a `wiki page <https://github.com/bioconda/bioconda-recipes/wiki/build-failures>`_,
+so that others can pick them up for providing a fix.
 
 
 Updating Bioconductor
