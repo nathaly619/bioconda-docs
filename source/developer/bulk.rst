@@ -39,11 +39,11 @@ some dedicated subcommands:
   local clone of https://github.com/bioconda/bioconda-recipes to the bulk branch while marking the commit
   as being eligible for a CI run (by automatically prefixing the message with ``[ci run]``).
   The **bulk-commit** subcommand does not push the commit. This enables you to do multiple fine-grained commits
-  and pus them in one pass via a subsequence ``git push`` that triggers a single CI run.
+  and push them in one pass via a subsequent ``git push`` that triggers a single CI run.
 * **bulk-trigger-ci**: ``bioconda-utils bulk-trigger-ci`` creates an empty commit that is 
   immediately pushed automatically to the bulk branch, thereby triggering a CI run. This can be used
   to restart the CI run in case all of the previous runs are finished without build failures but there 
-  are still packages that need to be build (and haven't been before because the job runtime limits were
+  are still packages that need to be built (and haven't been before because the job runtime limits were
   reached and the CI has terminated them (usually this happens after somewhat more than 5 hours)).
 
 Updating pinnings
@@ -101,7 +101,7 @@ example is updating pinnings to support Python 3.10.
    For each failure, decide whether the recipe shall be skiplisted or whether you would like to fix it.
    In general it is advisable to fix all libraries on which many recipes depend and anything else
    that is obvious and easy. For the rest, mark the recipes as skiplisted in the build failure file.
-   It will be ignored by subsequence CI runs and put into a table in the bioconda-recipes wiki.
+   It will be ignored by subsequent CI runs and put into a table in the bioconda-recipes wiki.
    This strategy is good because the bulk branch update should be performed as fast as possible to avoid
    redundant work between master and bulk. Also, skiplisting democratizes the update effort.
 
