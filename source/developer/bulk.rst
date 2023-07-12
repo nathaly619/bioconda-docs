@@ -148,6 +148,13 @@ fixing it later in the future.
 Notably, any update to the recipe automatically de-skiplists it, because the skiplist
 entry is only valid together with the hash listed in the first line.
 
+It is possible to further annotate and even manually create build failure records via the `bioconda-utils` CLI.
+Check out all possibilities in the corresponding help message:
+
+.. code-block:: bash
+
+    bioconda-utils annotate-build-failure --help
+
 Skiplisted recipes from the master branch are automatically displayed in a `wiki page <https://github.com/bioconda/bioconda-recipes/wiki/build-failures>`_,
 so that others can pick them up for providing a fix.
 
