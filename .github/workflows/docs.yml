@@ -64,7 +64,7 @@ jobs:
       run: |
         eval "$(conda shell.bash hook)"
         export BIOCONDA_FILTER_RECIPES=${{env.BIOCONDA_FILTER_RECIPES}}
-        conda activate ./env
+        conda activate bioconda
         make clean html SPHINXOPTS="-T -j1"
         touch build/html/.nojekyll
 
