@@ -1,4 +1,4 @@
-.. Notes to documentation editors:
+                  .. Notes to documentation editors:
 
    To build the documentation locally, first create an environment using
    bioconda_utils/bioconda_utils-requirements.txt.
@@ -316,4 +316,5 @@ Table of contents
 .. _`repository of packages`: https://anaconda.org/bioconda/
 .. _`conda package`: https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/packages.html
 .. _`BioContainer`: https://biocontainers.pro
-.. _`Quay.io`: https://quay.io/organization/biocontainers
+.. _`Quay.io`: https://quay.io/organization/biocontainers      
+
